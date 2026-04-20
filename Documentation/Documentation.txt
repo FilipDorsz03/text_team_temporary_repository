@@ -1,0 +1,40 @@
+# Technical Documentation: Text Processing & Classification Pipeline
+
+## 1. Project Overview
+The Text Team’s infrastructure is a modular Python-based framework designed for sentiment analysis of congressional speeches. The system integrates a domain-adapted BERT architecture with a robust evaluation suite to quantify political discourse through supervised learning.
+
+## 2. System Architecture
+
+### A. Model Definition (`models.py`)
+- **Class:** `BERTClassifier` (inherits from `torch.nn.Module`).
+- **Backbone:** Supports standard `bert-base-cased` or custom checkpoints from Self-Supervised Learning (SSL/MLM).
+- **Features:** - Frozen embedding layer to stabilize foundational linguistic weights.
+    - Customizable dropout layers (default: 0.2) for better generalization.
+    - Fully connected head (`fc_final`) mapping BERT's hidden states to 3 sentiment classes.
+
+### B. Training Logic (`training.py`)
+- **Data Pipeline:** `get_bert_dataloaders` handles JSON parsing and BERT tokenization with a 256-token limit.
+- **Partial Freezing:** Implements `partial_freeze_module`, allowing fine-tuning of top layers (e.g., layers 7-11) while keeping lower transformer blocks fixed to prevent catastrophic forgetting.
+- **Optimizer:** `AdamW` with **Layer-wise Learning Rate Decay (LLRD)**, where each layer has a progressively lower learning rate deeper into the network.
+
+### C. Evaluation Suite (`evaluation.py`)
+- **Benchmark Class:** `ClassificationBenchmark` automates the calculation of:
+    - **Primary Metrics:** Accuracy, Macro F1-Score, Precision, Recall.
+    - **Advanced Metrics:** Matthews Correlation Coefficient (MCC), Informedness, and Markedness.
+- **Error Analysis:** Generates confusion matrices to identify specific class-wise misclassifications.
+
+### D. Execution & HPO (`main.py`)
+- **Orchestration:** Manages the full lifecycle from data loading to model serialization (`.pth` files).
+- **Hyperparameter Optimization (HPO):** Integrated with **Optuna** to automate the search for optimal:
+    - Number of epochs (8–15).
+    - Learning rates ($10^{-5}$ to $10^{-4}$).
+    - Dropout probabilities and layer-freezing thresholds.
+
+## 3. Technical Specifications
+| Parameter | Value |
+| **Model Type** | BERT-base-cased |
+| **Token Limit** | 256 (Truncation: Right-side) |
+| **Classification Task** | 3-Class (Positive, Negative, Neutral) |
+| **Optimizer** | AdamW with Linear Warmup |
+| **Weight Decay** | 0.01 |
+
